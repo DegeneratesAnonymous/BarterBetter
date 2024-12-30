@@ -39,24 +39,39 @@ if (currentType === "Merchant") {
     }
 });
 
-// Indicate Merchant Status on Token
-Hooks.on("renderTokenHUD", (hud, html, data) => {
-    const token = canvas.tokens.get(data._id);
-    if (!token?.actor) return;
+// Add Trade Button to Token Controls
+Hooks.on("getSceneControlButtons", (controls) => {
+    const tokenControls = controls.find(control => control.name === "token");
+    if (!tokenControls) return;
 
-    const isMerchant = token.actor.getFlag("trade-system", "merchantType") === "Merchant";
-    if (isMerchant) {
-        const tradeButton = $(`<div class="control-icon" title="Trade"><i class="fas fa-exchange-alt"></i></div>`);
-        tradeButton.on("click", () => {
+    tokenControls.tools.push({
+        name: "initiate-trade",
+        title: "Initiate Trade",
+        icon: "fas fa-exchange-alt",
+        visible: true,
+        onClick: async () => {
+            const selectedToken = canvas.tokens.controlled[0];
+            if (!selectedToken) {
+                ui.notifications.error("No token selected.");
+                return;
+            }
+
+            const merchantActor = selectedToken.actor;
+            if (!merchantActor || merchantActor.getFlag("trade-system", "merchantType") !== "Merchant") {
+                ui.notifications.error("Selected token is not a Merchant.");
+                return;
+            }
+
             const playerActor = game.user.character;
             if (!playerActor) {
                 ui.notifications.error("You must have a character assigned to trade.");
                 return;
             }
-            initiateTrade(playerActor, token.actor);
-        });
-        html.find(".col.right").append(tradeButton);
-    }
+
+            initiateTrade(playerActor, merchantActor);
+        },
+        button: true
+    });
 });
 
 // Function to Initiate Trade
