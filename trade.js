@@ -46,106 +46,83 @@ Hooks.on("renderTokenHUD", (hud, html, data) => {
 
     const isMerchant = token.actor.getFlag("trade-system", "merchantType") === "Merchant";
     if (isMerchant) {
-        const merchantIndicator = $(`<div class="control-icon"><i class="fas fa-store-alt"></i></div>`);
-        html.find(".col.left").append(merchantIndicator);
-    }
-});
-
-// Add Trade Option to Token Context Menu
-Hooks.on("getSceneControlButtons", (controls) => {
-    const tokenControls = controls.find(control => control.name === "token");
-    if (!tokenControls) return;
-
-    tokenControls.tools.push({
-        name: "trade",
-        title: "Trade",
-        icon: "fas fa-exchange-alt",
-        button: true,
-        onClick: async () => {
-            const selectedTokens = canvas.tokens.controlled;
-            if (selectedTokens.length !== 1) {
-                ui.notifications.error("Please select a single token to trade with.");
-                return;
-            }
-
-            const token = selectedTokens[0];
-            const merchantActor = token.actor;
-
-            if (!merchantActor || merchantActor.getFlag("trade-system", "merchantType") !== "Merchant") {
-                ui.notifications.error("Selected token is not a Merchant.");
-                return;
-            }
-
+        const tradeButton = $(`<div class="control-icon" title="Trade"><i class="fas fa-exchange-alt"></i></div>`);
+        tradeButton.on("click", () => {
             const playerActor = game.user.character;
             if (!playerActor) {
                 ui.notifications.error("You must have a character assigned to trade.");
                 return;
             }
-
-            const playerGold = playerActor.system.currency.gp || 0;
-            const merchantGold = merchantActor.system.currency.gp || 0;
-
-            const playerInventoryHtml = generateInventoryHtml(playerActor, "player");
-            const merchantInventoryHtml = generateInventoryHtml(merchantActor, "merchant");
-
-            let haggleMultiplier = 1; // Default haggle multiplier
-
-            const dialogContent = `
-                <div style="display: flex; justify-content: space-between;">
-                    <div>
-                        <h3>${playerActor.name}</h3>
-                        <p>Gold: <span id="player-gold">${playerGold}</span></p>
-                        <ul id="player-inventory" style="border: 1px solid #ccc; padding: 10px;">${playerInventoryHtml}</ul>
-                        <div>Total Value: <span id="player-total">0</span> gp</div>
-                        <button id="haggle-button">Haggle</button>
-                    </div>
-                    <div>
-                        <h3>${merchantActor.name}</h3>
-                        <p>Gold: <span id="merchant-gold">${merchantGold}</span></p>
-                        <ul id="merchant-inventory" style="border: 1px solid #ccc; padding: 10px;">${merchantInventoryHtml}</ul>
-                        <div>Total Value: <span id="merchant-total">0</span> gp</div>
-                    </div>
-                </div>
-            `;
-
-            new Dialog({
-                title: "Trade Screen",
-                content: dialogContent,
-                buttons: {
-                    finalize: {
-                        label: "Finalize Trade",
-                        callback: () => finalizeTrade(playerActor, merchantActor, haggleMultiplier)
-                    },
-                    cancel: {
-                        label: "Cancel",
-                        callback: () => console.log("Trade cancelled.")
-                    }
-                },
-                render: (html) => {
-                    html.find("#haggle-button").on("click", async () => {
-                        const roll = await playerActor.rollSkill("persuasion", { event: null });
-                        const rollResult = roll.total;
-
-                        if (rollResult > 10) {
-                            const bonus = Math.floor((rollResult - 10) / 2) * 0.1;
-                            haggleMultiplier = 1 + bonus;
-                        } else {
-                            const penalty = Math.floor((10 - rollResult) / 2) * 0.1;
-                            haggleMultiplier = 1 - penalty;
-                        }
-
-                        html.find("#merchant-total").text((parseFloat(html.find("#merchant-total").text()) * haggleMultiplier).toFixed(2));
-                        html.find("#player-total").text((parseFloat(html.find("#player-total").text()) / haggleMultiplier).toFixed(2));
-
-                        ui.notifications.info(`Haggle result: Multiplier set to ${haggleMultiplier.toFixed(2)}`);
-                    });
-
-                    html.find("input[type='checkbox']").on("change", () => updateTotalValues(html));
-                }
-            }).render(true);
-        }
-    });
+            initiateTrade(playerActor, token.actor);
+        });
+        html.find(".col.right").append(tradeButton);
+    }
 });
+
+// Function to Initiate Trade
+function initiateTrade(playerActor, merchantActor) {
+    const playerGold = playerActor.system.currency.gp || 0;
+    const merchantGold = merchantActor.system.currency.gp || 0;
+
+    const playerInventoryHtml = generateInventoryHtml(playerActor, "player");
+    const merchantInventoryHtml = generateInventoryHtml(merchantActor, "merchant");
+
+    let haggleMultiplier = 1; // Default haggle multiplier
+
+    const dialogContent = `
+        <div style="display: flex; justify-content: space-between;">
+            <div>
+                <h3>${playerActor.name}</h3>
+                <p>Gold: <span id="player-gold">${playerGold}</span></p>
+                <ul id="player-inventory" style="border: 1px solid #ccc; padding: 10px;">${playerInventoryHtml}</ul>
+                <div>Total Value: <span id="player-total">0</span> gp</div>
+                <button id="haggle-button">Haggle</button>
+            </div>
+            <div>
+                <h3>${merchantActor.name}</h3>
+                <p>Gold: <span id="merchant-gold">${merchantGold}</span></p>
+                <ul id="merchant-inventory" style="border: 1px solid #ccc; padding: 10px;">${merchantInventoryHtml}</ul>
+                <div>Total Value: <span id="merchant-total">0</span> gp</div>
+            </div>
+        </div>
+    `;
+
+    new Dialog({
+        title: "Trade Screen",
+        content: dialogContent,
+        buttons: {
+            finalize: {
+                label: "Finalize Trade",
+                callback: () => finalizeTrade(playerActor, merchantActor, haggleMultiplier)
+            },
+            cancel: {
+                label: "Cancel",
+                callback: () => console.log("Trade cancelled.")
+            }
+        },
+        render: (html) => {
+            html.find("#haggle-button").on("click", async () => {
+                const roll = await playerActor.rollSkill("persuasion", { event: null });
+                const rollResult = roll.total;
+
+                if (rollResult > 10) {
+                    const bonus = Math.floor((rollResult - 10) / 2) * 0.1;
+                    haggleMultiplier = 1 + bonus;
+                } else {
+                    const penalty = Math.floor((10 - rollResult) / 2) * 0.1;
+                    haggleMultiplier = 1 - penalty;
+                }
+
+                html.find("#merchant-total").text((parseFloat(html.find("#merchant-total").text()) * haggleMultiplier).toFixed(2));
+                html.find("#player-total").text((parseFloat(html.find("#player-total").text()) / haggleMultiplier).toFixed(2));
+
+                ui.notifications.info(`Haggle result: Multiplier set to ${haggleMultiplier.toFixed(2)}`);
+            });
+
+            html.find("input[type='checkbox']").on("change", () => updateTotalValues(html));
+        }
+    }).render(true);
+}
 
 function generateInventoryHtml(actor, type) {
     return actor.items.filter(i => i.type === "equipment" || i.type === "consumable" || i.type === "loot")
