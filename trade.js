@@ -1,6 +1,5 @@
 // Add a Merchant Checkbox to Actor Sheets
 Hooks.on("renderActorSheet", (app, html, data) => {
-    console.log("Actor sheet rendered:", app.actor.name);
     const isMerchant = app.actor.getFlag("trade-system", "isMerchant") || false;
 
     const header = html.find(".window-header .window-title");
@@ -10,6 +9,41 @@ Hooks.on("renderActorSheet", (app, html, data) => {
     merchantCheckbox.find("input").on("change", (event) => {
         app.actor.setFlag("trade-system", "isMerchant", event.target.checked);
     });
+});
+
+// Add a Macro for GM to Toggle Merchant Flag
+Hooks.once("ready", () => {
+    if (game.user.isGM) {
+        const macroName = "Toggle Merchant Flag";
+        if (!game.macros.getName(macroName)) {
+            Macro.create({
+                name: macroName,
+                type: "script",
+                scope: "global",
+                command: `
+const selectedToken = canvas.tokens.controlled[0];
+if (!selectedToken) {
+    ui.notifications.error("No token selected.");
+    return;
+}
+const actor = selectedToken.actor;
+if (!actor) {
+    ui.notifications.error("Selected token does not have an actor.");
+    return;
+}
+const isMerchant = actor.getFlag("trade-system", "isMerchant") || false;
+actor.setFlag("trade-system", "isMerchant", !isMerchant).then(() => {
+    ui.notifications.info(`${actor.name} is now ${!isMerchant ? 'a Merchant' : 'no longer a Merchant'}.`);
+});
+                `,
+                img: "icons/svg/shop.svg",
+                folder: null,
+                sort: 0,
+                ownership: { [game.user.id]: 3 },
+                flags: {}
+            });
+        }
+    }
 });
 
 // Trigger Trade UI on Double Click
