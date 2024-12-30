@@ -1,9 +1,9 @@
 {
-  "name": "trade-system",
-  "title": "Trade System",
+  "name": "barterbetter",
+  "title": "BarterBetter",
   "description": "A module to manage trading between players and NPC merchants.",
   "version": "1.0.0",
-  "author": "YourName",
+  "author": "Coleman",
   "minimumCoreVersion": "10.0",
   "compatibleCoreVersion": "12.0",
   "esmodules": ["trade.js"],
