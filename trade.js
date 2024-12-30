@@ -1,20 +1,7 @@
-// Add a Merchant Checkbox to Actor Sheets
-Hooks.on("renderActorSheet", (app, html, data) => {
-    const isMerchant = app.actor.getFlag("trade-system", "isMerchant") || false;
-
-    const header = html.find(".window-header .window-title");
-    const merchantCheckbox = $(`<div class="merchant-flag"><label><input type="checkbox" ${isMerchant ? "checked" : ""}> Merchant</label></div>`);
-    header.after(merchantCheckbox);
-
-    merchantCheckbox.find("input").on("change", (event) => {
-        app.actor.setFlag("trade-system", "isMerchant", event.target.checked);
-    });
-});
-
-// Add a Macro for GM to Toggle Merchant Flag
+// Add a Macro for GM to Set Merchant Type
 Hooks.once("ready", () => {
     if (game.user.isGM) {
-        const macroName = "Toggle Merchant Flag";
+        const macroName = "Create Merchant";
         if (!game.macros.getName(macroName)) {
             Macro.create({
                 name: macroName,
@@ -31,10 +18,16 @@ if (!actor) {
     ui.notifications.error("Selected token does not have an actor.");
     return;
 }
-const isMerchant = actor.getFlag("trade-system", "isMerchant") || false;
-actor.setFlag("trade-system", "isMerchant", !isMerchant).then(() => {
-    ui.notifications.info(`${actor.name} is now ${!isMerchant ? 'a Merchant' : 'no longer a Merchant'}.`);
-});
+const currentType = actor.getFlag("trade-system", "merchantType") || "Creature";
+if (currentType === "Merchant") {
+    actor.setFlag("trade-system", "merchantType", "Creature").then(() => {
+        ui.notifications.info(\`${actor.name} is no longer a Merchant.\`);
+    });
+} else {
+    actor.setFlag("trade-system", "merchantType", "Merchant").then(() => {
+        ui.notifications.info(\`${actor.name} is now a Merchant.\`);
+    });
+}
                 `,
                 img: "icons/svg/shop.svg",
                 folder: null,
@@ -46,11 +39,23 @@ actor.setFlag("trade-system", "isMerchant", !isMerchant).then(() => {
     }
 });
 
+// Indicate Merchant Status on Token
+Hooks.on("renderTokenHUD", (hud, html, data) => {
+    const token = canvas.tokens.get(data._id);
+    if (!token?.actor) return;
+
+    const isMerchant = token.actor.getFlag("trade-system", "merchantType") === "Merchant";
+    if (isMerchant) {
+        const merchantIndicator = $(`<div class="control-icon"><i class="fas fa-store-alt"></i></div>`);
+        html.find(".col.left").append(merchantIndicator);
+    }
+});
+
 // Trigger Trade UI on Double Click
 Hooks.on("doubleClickToken", async (token) => {
     const merchantActor = token.actor;
 
-    if (!merchantActor?.getFlag("trade-system", "isMerchant")) return;
+    if (!merchantActor || merchantActor.getFlag("trade-system", "merchantType") !== "Merchant") return;
 
     const playerActor = game.user.character;
     if (!playerActor) {
