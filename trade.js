@@ -1,5 +1,6 @@
 // Add a Merchant Checkbox to Actor Sheets
 Hooks.on("renderActorSheet", (app, html, data) => {
+    console.log("Actor sheet rendered:", app.actor.name);
     const isMerchant = app.actor.getFlag("trade-system", "isMerchant") || false;
 
     const header = html.find(".window-header .window-title");
