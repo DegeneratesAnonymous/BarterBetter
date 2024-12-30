@@ -1,0 +1,19 @@
+.trade-container {
+    display: flex;
+    justify-content: space-between;
+}
+
+.trade-player,
+.trade-merchant {
+    width: 45%;
+}
+
+.trade-player h3,
+.trade-merchant h3 {
+    text-align: center;
+}
+
+ul {
+    list-style-type: none;
+    padding: 0;
+}

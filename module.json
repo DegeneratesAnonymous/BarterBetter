@@ -1,0 +1,15 @@
+{
+    "name": "trade-system",
+    "title": "Trade System",
+    "description": "A module to manage trading between players and NPC merchants.",
+    "version": "1.0.0",
+    "author": "YourName",
+    "minimumCoreVersion": "10.0",
+    "compatibleCoreVersion": "12.0",
+    "esmodules": ["trade.js"],
+    "styles": ["styles/trade.css"],
+    "url": "https://your-repository-url",
+    "manifest": "https://your-manifest-url",
+    "download": "https://your-download-url",
+    "license": "MIT"
+}
