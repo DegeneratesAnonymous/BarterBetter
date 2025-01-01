@@ -1,7 +1,7 @@
 // Register the "trade-system" flag scope
 Hooks.once("init", () => {
     console.log("Initializing BarterBetter module...");
-    // CONFIG.Actor.documentClass.prototype.flags["trade-system"] = {};
+    CONFIG.Actor.documentClass.prototype.flags["trade-system"] = {};
 });
 
 // Add event listener for canvas clicks
