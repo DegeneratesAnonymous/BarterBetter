@@ -67,8 +67,10 @@ function getTokenAtPosition(position) {
 }
 
 async function performCharismaCheck(actor) {
-    const roll = await actor.rollSkill("persuasion", { event: null });
-    return roll.total;
+    const roll = new Roll("1d20 + @abilities.cha.mod", actor.getRollData());
+    const result = await roll.roll({ async: true });
+    console.log(`Charisma check result: ${result.total}`);
+    return result.total;
 }
 
 function calculatePriceModifier(charismaCheck) {
@@ -145,11 +147,12 @@ async function initiateTrade(playerActor, merchantActor, priceModifier) {
         },
         render: (html) => {
             html.find("#haggle-button").on("click", async () => {
-                const roll = await playerActor.rollSkill("persuasion", { event: null });
-                const rollResult = roll.total;
+                const roll = new Roll("1d20 + @abilities.cha.mod", playerActor.getRollData());
+                const result = await roll.roll({ async: true });
+                console.log(`Haggle roll result: ${result.total}`);
 
                 let charismaCheck = merchantActor.getFlag("trade-system", `charismaCheck-${playerActor.id}`);
-                if (rollResult > 10) {
+                if (result.total > 10) {
                     charismaCheck += 1;
                 } else {
                     charismaCheck -= 1;
