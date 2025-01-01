@@ -2,7 +2,7 @@
   "name": "barterbetter",
   "title": "BarterBetter",
   "description": "A module to manage trading between players and NPC merchants.",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "author": "Coleman",
   "minimumCoreVersion": "10.0",
   "compatibleCoreVersion": "12.0",
