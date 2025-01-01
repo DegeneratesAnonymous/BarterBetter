@@ -1,44 +1,50 @@
-// Add a Button for GM to Set Merchant Type
-Hooks.on("getSceneControlButtons", (controls) => {
-    console.log("Registering scene control buttons...");
-    if (!game.user.isGM) return;
-
-    const tokenControls = controls.find(control => control.name === "token");
-    if (!tokenControls) return;
-
-    tokenControls.tools.push({
-        name: "set-merchant",
-        title: "Set Merchant",
-        icon: "fas fa-store",
-        visible: game.user.isGM,
-        onClick: () => {
-            console.log("Set Merchant button clicked...");
-            const selectedToken = canvas.tokens.controlled[0];
-            if (!selectedToken) {
-                ui.notifications.error("No token selected.");
-                return;
-            }
-
-            const actor = selectedToken.actor;
-            if (!actor) {
-                ui.notifications.error("Selected token does not have an actor.");
-                return;
-            }
-
-            const currentType = actor.getFlag("trade-system", "merchantType") || "Creature";
-            if (currentType === "Merchant") {
-                actor.setFlag("trade-system", "merchantType", "Creature").then(() => {
-                    ui.notifications.info(`${actor.name} is no longer a Merchant.`);
-                });
-            } else {
-                actor.setFlag("trade-system", "merchantType", "Merchant").then(() => {
-                    ui.notifications.info(`${actor.name} is now a Merchant.`);
-                });
-            }
-        },
-        button: true
-    });
+// Register the "trade-system" flag scope
+Hooks.once("init", () => {
+    console.log("Initializing BarterBetter module...");
+   // CONFIG.Actor.documentClass.prototype.flags["trade-system"] = {};
 });
+
+// Add a Button for GM to Set Merchant Type
+// Hooks.on("getSceneControlButtons", (controls) => {
+//     console.log("Registering scene control buttons...");
+//     if (!game.user.isGM) return;
+
+//     const tokenControls = controls.find(control => control.name === "token");
+//     if (!tokenControls) return;
+
+//     tokenControls.tools.push({
+//         name: "set-merchant",
+//         title: "Set Merchant",
+//         icon: "fas fa-store",
+//         visible: game.user.isGM,
+//         onClick: () => {
+//             console.log("Set Merchant button clicked...");
+//             const selectedToken = canvas.tokens.controlled[0];
+//             if (!selectedToken) {
+//                 ui.notifications.error("No token selected.");
+//                 return;
+//             }
+
+//             const actor = selectedToken.actor;
+//             if (!actor) {
+//                 ui.notifications.error("Selected token does not have an actor.");
+//                 return;
+//             }
+
+//             const currentType = actor.getFlag("trade-system", "merchantType") || "Creature";
+//             if (currentType === "Merchant") {
+//                 actor.setFlag("trade-system", "merchantType", "Creature").then(() => {
+//                     ui.notifications.info(`${actor.name} is no longer a Merchant.`);
+//                 });
+//             } else {
+//                 actor.setFlag("trade-system", "merchantType", "Merchant").then(() => {
+//                     ui.notifications.info(`${actor.name} is now a Merchant.`);
+//                 });
+//             }
+//         },
+//         button: true
+//     });
+// });
 
 // Add event listener for canvas clicks
 Hooks.on("canvasReady", () => {
@@ -60,12 +66,13 @@ Hooks.on("canvasReady", () => {
             }
 
             const merchantActor = clickedToken.actor;
-            if (!merchantActor || merchantActor.getFlag("trade-system", "merchantType") !== "Merchant") {
-                ui.notifications.error("Clicked token is not a Merchant.");
-                return;
-            }
+            console.log ("merchantActor", merchantActor);
+            // if (!merchantActor || merchantActor.getFlag("trade-system", "merchantType") !== "Merchant") {
+            //     ui.notifications.error("Clicked token is not a Merchant.");
+            //     return;
+            // }
 
-            initiateTrade(playerActor, merchantActor);
+//            initiateTrade(playerActor, merchantActor);
         }
     });
 });
