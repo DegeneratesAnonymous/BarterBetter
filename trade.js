@@ -1,91 +1,96 @@
-// Add a Macro for GM to Set Merchant Type
-Hooks.once("ready", () => {
-    if (game.user.isGM) {
-        const macroName = "Create Merchant";
-        if (!game.macros.getName(macroName)) {
-            Macro.create({
-                name: macroName,
-                type: "script",
-                scope: "global",
-                command: `
-const selectedToken = canvas.tokens.controlled[0];
-if (!selectedToken) {
-    ui.notifications.error("No token selected.");
-    return;
-}
-const actor = selectedToken.actor;
-if (!actor) {
-    ui.notifications.error("Selected token does not have an actor.");
-    return;
-}
-const currentType = actor.getFlag("trade-system", "merchantType") || "Creature";
-if (currentType === "Merchant") {
-    actor.setFlag("trade-system", "merchantType", "Creature").then(() => {
-        ui.notifications.info(\`${actor.name} is no longer a Merchant.\`);
-    });
-} else {
-    actor.setFlag("trade-system", "merchantType", "Merchant").then(() => {
-        ui.notifications.info(\`${actor.name} is now a Merchant.\`);
-    });
-}
-                `,
-                img: "icons/svg/shop.svg",
-                folder: null,
-                sort: 0,
-                ownership: { [game.user.id]: 3 },
-                flags: {}
-            });
-        }
-    }
-});
-
-// Add Trade Button to Token Controls
+// Add a Button for GM to Set Merchant Type
 Hooks.on("getSceneControlButtons", (controls) => {
+    if (!game.user.isGM) return;
+
     const tokenControls = controls.find(control => control.name === "token");
     if (!tokenControls) return;
 
     tokenControls.tools.push({
-        name: "initiate-trade",
-        title: "Initiate Trade",
-        icon: "fas fa-exchange-alt",
-        visible: true,
-        onClick: async () => {
+        name: "set-merchant",
+        title: "Set Merchant",
+        icon: "fas fa-store",
+        visible: game.user.isGM,
+        onClick: () => {
             const selectedToken = canvas.tokens.controlled[0];
             if (!selectedToken) {
                 ui.notifications.error("No token selected.");
                 return;
             }
 
-            const merchantActor = selectedToken.actor;
-            if (!merchantActor || merchantActor.getFlag("trade-system", "merchantType") !== "Merchant") {
-                ui.notifications.error("Selected token is not a Merchant.");
+            const actor = selectedToken.actor;
+            if (!actor) {
+                ui.notifications.error("Selected token does not have an actor.");
                 return;
             }
 
+            const currentType = actor.getFlag("trade-system", "merchantType") || "Creature";
+            if (currentType === "Merchant") {
+                actor.setFlag("trade-system", "merchantType", "Creature").then(() => {
+                    ui.notifications.info(`${actor.name} is no longer a Merchant.`);
+                });
+            } else {
+                actor.setFlag("trade-system", "merchantType", "Merchant").then(() => {
+                    ui.notifications.info(`${actor.name} is now a Merchant.`);
+                });
+            }
+        },
+        button: true
+    });
+});
+
+// Add event listener for canvas clicks
+Hooks.on("canvasReady", () => {
+    canvas.stage.on("mousedown", async (event) => {
+        const clickPosition = event.data.getLocalPosition(canvas.tokens);
+        const clickedToken = getTokenAtPosition(clickPosition);
+
+        if (clickedToken) {
             const playerActor = game.user.character;
             if (!playerActor) {
                 ui.notifications.error("You must have a character assigned to trade.");
                 return;
             }
 
-            new Dialog({
-                title: "Confirm Trade",
-                content: `<p>Do you want to initiate a trade with ${merchantActor.name}?</p>`,
-                buttons: {
-                    yes: {
-                        label: "Yes",
-                        callback: () => initiateTrade(playerActor, merchantActor)
-                    },
-                    no: {
-                        label: "No",
-                        callback: () => console.log("Trade initiation cancelled.")
-                    }
-                }
-            }).render(true);
-        },
-        button: true
+            const merchantActor = clickedToken.actor;
+            if (!merchantActor || merchantActor.getFlag("trade-system", "merchantType") !== "Merchant") {
+                ui.notifications.error("Clicked token is not a Merchant.");
+                return;
+            }
+
+            initiateTrade(playerActor, merchantActor);
+        }
     });
 });
+
+function getTokenAtPosition(position) {
+    return canvas.tokens.placeables.find(token => {
+        const bounds = token.getBounds();
+        return bounds.contains(position.x, position.y);
+    });
+}
+
+function findNearestMerchant(clickPosition) {
+    const clickX = clickPosition.x;
+    const clickY = clickPosition.y;
+    let nearestMerchant = null;
+    let minDistance = Infinity;
+
+    game.scenes.current.tokens.forEach((token) => {
+        const position = {
+            x: token.x + token.width / 2,
+            y: token.y + token.height / 2
+        };
+        const distance = Math.hypot(position.x - clickX, position.y - clickY);
+        if (distance <= 15 && token.actor.data.flags.tags.includes("merchant")) {
+            if (distance < minDistance) {
+                minDistance = distance;
+                nearestMerchant = token.actor;
+            }
+        }
+    });
+
+    return nearestMerchant;
+}
 
 // Function to Initiate Trade
 function initiateTrade(playerActor, merchantActor) {
