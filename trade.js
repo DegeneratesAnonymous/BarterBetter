@@ -28,11 +28,11 @@ Hooks.on("canvasReady", () => {
             console.log("merchantActor", merchantActor);
 
             if (merchantActor.type === "npc") {
-                const playerId = playerActor.id;
-                let charismaCheck = merchantActor.getFlag("barterbetter", `charismaCheck-${playerId}`);
+                const merchantId = merchantActor.id;
+                let charismaCheck = playerActor.getFlag("barterbetter", `charismaCheck-${merchantId}`);
                 if (!charismaCheck) {
                     charismaCheck = await performCharismaCheck(playerActor);
-                    await merchantActor.setFlag("barterbetter", `charismaCheck-${playerId}`, charismaCheck);
+                    await playerActor.setFlag("barterbetter", `charismaCheck-${merchantId}`, charismaCheck);
                 }
                 const priceModifier = calculatePriceModifier(charismaCheck);
 
@@ -45,8 +45,7 @@ Hooks.on("canvasReady", () => {
                             callback: () => initiateTrade(playerActor, merchantActor, priceModifier)
                         },
                         no: {
-                            label: "No",
-                            callback: () => console.log("Trade initiation cancelled.")
+                            label: "No"
                         }
                     }
                 }).render(true);
