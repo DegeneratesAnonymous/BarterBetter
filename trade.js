@@ -1,7 +1,7 @@
 // Register the "trade-system" flag scope
 Hooks.once("init", () => {
     console.log("Initializing BarterBetter module...");
-   // CONFIG.Actor.documentClass.prototype.flags["trade-system"] = {};
+    // CONFIG.Actor.documentClass.prototype.flags["trade-system"] = {};
 });
 
 // Add event listener for canvas clicks
@@ -18,11 +18,6 @@ Hooks.on("canvasReady", () => {
         if (clickedToken) {
             console.log("Token clicked:", clickedToken);
             const playerActor = game.user.character;
-            if (!playerActor) {
-                ui.notifications.error("You must have a character assigned to trade.");
-                return;
-            }
-
             const merchantActor = clickedToken.actor;
             console.log("merchantActor", merchantActor);
 
@@ -81,8 +76,8 @@ function findNearestMerchant(clickPosition) {
 
 // Function to Initiate Trade
 function initiateTrade(playerActor, merchantActor) {
-    console.log("Initiating trade between", playerActor.name, "and", merchantActor.name);
-    const playerGold = playerActor.system.currency.gp || 0;
+    console.log("Initiating trade between", playerActor?.name, "and", merchantActor.name);
+    const playerGold = playerActor?.system.currency.gp || 0;
     const merchantGold = merchantActor.system.currency.gp || 0;
 
     const playerInventoryHtml = generateInventoryHtml(playerActor, "player");
@@ -92,17 +87,17 @@ function initiateTrade(playerActor, merchantActor) {
 
     const dialogContent = `
         <div style="display: flex; justify-content: space-between;">
-            <div>
-                <h3>${playerActor.name}</h3>
+            <div style="width: 45%;">
+                <h3>${playerActor?.name}</h3>
                 <p>Gold: <span id="player-gold">${playerGold}</span></p>
-                <ul id="player-inventory" style="border: 1px solid #ccc; padding: 10px;">${playerInventoryHtml}</ul>
+                <ul id="player-inventory" style="border: 1px solid #ccc; padding: 10px; list-style: none;">${playerInventoryHtml}</ul>
                 <div>Total Value: <span id="player-total">0</span> gp</div>
                 <button id="haggle-button">Haggle</button>
             </div>
-            <div>
+            <div style="width: 45%;">
                 <h3>${merchantActor.name}</h3>
                 <p>Gold: <span id="merchant-gold">${merchantGold}</span></p>
-                <ul id="merchant-inventory" style="border: 1px solid #ccc; padding: 10px;">${merchantInventoryHtml}</ul>
+                <ul id="merchant-inventory" style="border: 1px solid #ccc; padding: 10px; list-style: none;">${merchantInventoryHtml}</ul>
                 <div>Total Value: <span id="merchant-total">0</span> gp</div>
             </div>
         </div>
@@ -147,13 +142,23 @@ function initiateTrade(playerActor, merchantActor) {
 
 function generateInventoryHtml(actor, type) {
     return actor.items.filter(i => i.type === "equipment" || i.type === "consumable" || i.type === "loot")
-        .map(item => `<li><input type="checkbox" data-id="${item.id}" data-price="${item.system.price || 0}" class="${type}-item"> ${item.name} (${item.system.quantity || 1})</li>`)
+        .map(item => {
+            const price = item.system.price || 0;
+            const displayPrice = price > 0 ? price : '?';
+            return `<li><input type="checkbox" data-id="${item.id}" data-price="${price}" class="${type}-item"> ${item.name} (${item.system.quantity || 1}) - ${displayPrice} gp</li>`;
+        })
         .join("");
 }
 
 function updateTotalValues(html) {
-    const playerTotal = Array.from(html.find(".player-item:checked")).reduce((sum, el) => sum + parseFloat(el.dataset.price || 0), 0);
-    const merchantTotal = Array.from(html.find(".merchant-item:checked")).reduce((sum, el) => sum + parseFloat(el.dataset.price || 0), 0);
+    const playerTotal = Array.from(html.find(".player-item:checked")).reduce((sum, el) => {
+        const price = parseFloat(el.dataset.price || 0);
+        return price > 0 ? sum + price : sum;
+    }, 0);
+    const merchantTotal = Array.from(html.find(".merchant-item:checked")).reduce((sum, el) => {
+        const price = parseFloat(el.dataset.price || 0);
+        return price > 0 ? sum + price : sum;
+    }, 0);
 
     html.find("#player-total").text(playerTotal.toFixed(2));
     html.find("#merchant-total").text(merchantTotal.toFixed(2));
@@ -163,8 +168,14 @@ async function finalizeTrade(playerActor, merchantActor, haggleMultiplier) {
     const playerSelected = Array.from(document.querySelectorAll(".player-item:checked"));
     const merchantSelected = Array.from(document.querySelectorAll(".merchant-item:checked"));
 
-    let playerValue = playerSelected.reduce((sum, el) => sum + parseFloat(el.dataset.price || 0), 0) * haggleMultiplier;
-    let merchantValue = merchantSelected.reduce((sum, el) => sum + parseFloat(el.dataset.price || 0), 0) / haggleMultiplier;
+    let playerValue = playerSelected.reduce((sum, el) => {
+        const price = parseFloat(el.dataset.price || 0);
+        return price > 0 ? sum + price : sum;
+    }, 0) * haggleMultiplier;
+    let merchantValue = merchantSelected.reduce((sum, el) => {
+        const price = parseFloat(el.dataset.price || 0);
+        return price > 0 ? sum + price : sum;
+    }, 0) / haggleMultiplier;
 
     const playerGold = playerActor.system.currency.gp || 0;
     const merchantGold = merchantActor.system.currency.gp || 0;
