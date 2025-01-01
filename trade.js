@@ -68,7 +68,20 @@ Hooks.on("getSceneControlButtons", (controls) => {
                 return;
             }
 
-            initiateTrade(playerActor, merchantActor);
+            new Dialog({
+                title: "Confirm Trade",
+                content: `<p>Do you want to initiate a trade with ${merchantActor.name}?</p>`,
+                buttons: {
+                    yes: {
+                        label: "Yes",
+                        callback: () => initiateTrade(playerActor, merchantActor)
+                    },
+                    no: {
+                        label: "No",
+                        callback: () => console.log("Trade initiation cancelled.")
+                    }
+                }
+            }).render(true);
         },
         button: true
     });
