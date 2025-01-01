@@ -86,8 +86,8 @@ function initiateTrade(playerActor, merchantActor) {
     let haggleMultiplier = 1; // Default haggle multiplier
 
     const dialogContent = `
-        <div style="display: flex; justify-content: space-between;">
-            <div style="width: 45%;">
+        <div style="display: flex; justify-content: space-between; width: 100%;">
+            <div style="width: 48%;">
                 <h3>${playerActor?.name}</h3>
                 <p>Gold: <span id="player-gold">${playerGold}</span></p>
                 <div style="border: 1px solid #ccc; height: 200px; overflow-y: auto;">
@@ -106,7 +106,7 @@ function initiateTrade(playerActor, merchantActor) {
                 <div>Total Value: <span id="player-total">0</span> gp</div>
                 <button id="haggle-button">Haggle</button>
             </div>
-            <div style="width: 45%;">
+            <div style="width: 48%;">
                 <h3>${merchantActor.name}</h3>
                 <p>Gold: <span id="merchant-gold">${merchantGold}</span></p>
                 <div style="border: 1px solid #ccc; height: 200px; overflow-y: auto;">
