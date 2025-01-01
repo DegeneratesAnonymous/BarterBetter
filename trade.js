@@ -48,8 +48,8 @@ Hooks.on("canvasReady", () => {
         const clickPosition = event.data.getLocalPosition(canvas.tokens);
         const clickedToken = getTokenAtPosition(clickPosition);
 
-console.log ("clickedToken", clickedToken);
-console.log ("clickPosition", clickPosition);
+        console.log("clickedToken", clickedToken);
+        console.log("clickPosition", clickPosition);
 
         if (clickedToken) {
             console.log("Token clicked:", clickedToken);
@@ -71,12 +71,11 @@ console.log ("clickPosition", clickPosition);
 });
 
 function getTokenAtPosition(position) {
-
-console.log("canvas.tokens", canvas.tokens);
-console.log("position", position);
+    console.log("canvas.tokens", canvas.tokens);
+    console.log("position", position);
 
     return canvas.tokens.placeables.find(token => {
-        const bounds = token.getBounds();
+        const bounds = token.bounds; // Updated for Foundry VTT v12
         return bounds.contains(position.x, position.y);
     });
 }
