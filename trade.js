@@ -94,6 +94,7 @@ function initiateTrade(playerActor, merchantActor) {
                     <table id="player-inventory" style="width: 100%; border-collapse: collapse;">
                         <thead>
                             <tr>
+                                <th style="padding: 8px;">Select</th>
                                 <th style="padding: 8px;">Item</th>
                                 <th style="padding: 8px;">Amount</th>
                                 <th style="padding: 8px;">Value</th>
@@ -112,6 +113,7 @@ function initiateTrade(playerActor, merchantActor) {
                     <table id="merchant-inventory" style="width: 100%; border-collapse: collapse;">
                         <thead>
                             <tr>
+                                <th style="padding: 8px;">Select</th>
                                 <th style="padding: 8px;">Item</th>
                                 <th style="padding: 8px;">Amount</th>
                                 <th style="padding: 8px;">Value</th>
@@ -168,7 +170,8 @@ function generateInventoryHtml(actor, type) {
             const price = item.system.price || 0;
             const displayPrice = price > 0 ? price : '?';
             return `<tr>
-                        <td style="padding: 8px;"><input type="checkbox" data-id="${item.id}" data-price="${price}" class="${type}-item"> ${item.name}</td>
+                        <td style="padding: 8px;"><input type="checkbox" data-id="${item.id}" data-price="${price}" class="${type}-item"></td>
+                        <td style="padding: 8px;">${item.name}</td>
                         <td style="padding: 8px;">${item.system.quantity || 1}</td>
                         <td style="padding: 8px;">${displayPrice} gp</td>
                     </tr>`;
