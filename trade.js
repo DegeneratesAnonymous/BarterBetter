@@ -1,7 +1,6 @@
 // Register the "trade-system" flag scope
 Hooks.once("init", () => {
     console.log("Initializing BarterBetter module...");
-    CONFIG.Actor.documentClass.prototype.flags["trade-system"] = {};
     game.settings.register("barterbetter", "trade-system", {
         name: "Trade System",
         scope: "world",
@@ -30,10 +29,10 @@ Hooks.on("canvasReady", () => {
 
             if (merchantActor.type === "npc") {
                 const playerId = playerActor.id;
-                let charismaCheck = merchantActor.getFlag("trade-system", `charismaCheck-${playerId}`);
+                let charismaCheck = merchantActor.getFlag("barterbetter", `charismaCheck-${playerId}`);
                 if (!charismaCheck) {
                     charismaCheck = await performCharismaCheck(playerActor);
-                    merchantActor.setFlag("trade-system", `charismaCheck-${playerId}`, charismaCheck);
+                    await merchantActor.setFlag("barterbetter", `charismaCheck-${playerId}`, charismaCheck);
                 }
                 const priceModifier = calculatePriceModifier(charismaCheck);
 
