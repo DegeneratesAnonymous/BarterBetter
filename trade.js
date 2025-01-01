@@ -90,14 +90,32 @@ function initiateTrade(playerActor, merchantActor) {
             <div style="width: 45%;">
                 <h3>${playerActor?.name}</h3>
                 <p>Gold: <span id="player-gold">${playerGold}</span></p>
-                <ul id="player-inventory" style="border: 1px solid #ccc; padding: 10px; list-style: none;">${playerInventoryHtml}</ul>
+                <table id="player-inventory" style="border: 1px solid #ccc; width: 100%;">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Amount</th>
+                            <th>Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>${playerInventoryHtml}</tbody>
+                </table>
                 <div>Total Value: <span id="player-total">0</span> gp</div>
                 <button id="haggle-button">Haggle</button>
             </div>
             <div style="width: 45%;">
                 <h3>${merchantActor.name}</h3>
                 <p>Gold: <span id="merchant-gold">${merchantGold}</span></p>
-                <ul id="merchant-inventory" style="border: 1px solid #ccc; padding: 10px; list-style: none;">${merchantInventoryHtml}</ul>
+                <table id="merchant-inventory" style="border: 1px solid #ccc; width: 100%;">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Amount</th>
+                            <th>Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>${merchantInventoryHtml}</tbody>
+                </table>
                 <div>Total Value: <span id="merchant-total">0</span> gp</div>
             </div>
         </div>
@@ -145,7 +163,11 @@ function generateInventoryHtml(actor, type) {
         .map(item => {
             const price = item.system.price || 0;
             const displayPrice = price > 0 ? price : '?';
-            return `<li><input type="checkbox" data-id="${item.id}" data-price="${price}" class="${type}-item"> ${item.name} (${item.system.quantity || 1}) - ${displayPrice} gp</li>`;
+            return `<tr>
+                        <td><input type="checkbox" data-id="${item.id}" data-price="${price}" class="${type}-item"> ${item.name}</td>
+                        <td>${item.system.quantity || 1}</td>
+                        <td>${displayPrice} gp</td>
+                    </tr>`;
         })
         .join("");
 }
