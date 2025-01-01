@@ -150,6 +150,11 @@ async function initiateTrade(playerActor, merchantActor, priceModifier) {
                 const roll = new Roll("1d20 + @abilities.cha.mod", playerActor.getRollData());
                 const result = await roll.roll({ async: true });
                 console.log(`Haggle roll result: ${result.total}`);
+                ChatMessage.create({
+                    user: game.user.id,
+                    speaker: ChatMessage.getSpeaker({ actor: playerActor }),
+                    content: `Haggle roll result: ${result.total}`
+                });
 
                 let charismaCheck = merchantActor.getFlag("trade-system", `charismaCheck-${playerActor.id}`);
                 if (result.total > 10) {
@@ -230,21 +235,21 @@ async function finalizeTrade(playerActor, merchantActor, haggleMultiplier) {
     }
 
     // Transfer items
-    playerSelected.forEach(el => {
+    for (const el of playerSelected) {
         const item = playerActor.items.get(el.dataset.id);
-        playerActor.deleteEmbeddedDocuments("Item", [item.id]);
-        merchantActor.createEmbeddedDocuments("Item", [item.toObject()]);
-    });
+        await playerActor.deleteEmbeddedDocuments("Item", [item.id]);
+        await merchantActor.createEmbeddedDocuments("Item", [item.toObject()]);
+    }
 
-    merchantSelected.forEach(el => {
+    for (const el of merchantSelected) {
         const item = merchantActor.items.get(el.dataset.id);
-        merchantActor.deleteEmbeddedDocuments("Item", [item.id]);
-        playerActor.createEmbeddedDocuments("Item", [item.toObject()]);
-    });
+        await merchantActor.deleteEmbeddedDocuments("Item", [item.id]);
+        await playerActor.createEmbeddedDocuments("Item", [item.toObject()]);
+    }
 
     // Adjust gold
-    playerActor.update({ "system.currency.gp": playerGold + playerValue - merchantValue });
-    merchantActor.update({ "system.currency.gp": merchantGold + merchantValue - playerValue });
+    await playerActor.update({ "system.currency.gp": playerGold + playerValue - merchantValue });
+    await merchantActor.update({ "system.currency.gp": merchantGold + merchantValue - playerValue });
 
     ui.notifications.info("Trade completed successfully!");
 }
