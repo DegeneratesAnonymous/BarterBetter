@@ -1,5 +1,6 @@
 // Add a Button for GM to Set Merchant Type
 Hooks.on("getSceneControlButtons", (controls) => {
+    console.log("Registering scene control buttons...");
     if (!game.user.isGM) return;
 
     const tokenControls = controls.find(control => control.name === "token");
@@ -11,6 +12,7 @@ Hooks.on("getSceneControlButtons", (controls) => {
         icon: "fas fa-store",
         visible: game.user.isGM,
         onClick: () => {
+            console.log("Set Merchant button clicked...");
             const selectedToken = canvas.tokens.controlled[0];
             if (!selectedToken) {
                 ui.notifications.error("No token selected.");
@@ -40,11 +42,14 @@ Hooks.on("getSceneControlButtons", (controls) => {
 
 // Add event listener for canvas clicks
 Hooks.on("canvasReady", () => {
+    console.log("Canvas is ready...");
     canvas.stage.on("mousedown", async (event) => {
+        console.log("Canvas clicked...");
         const clickPosition = event.data.getLocalPosition(canvas.tokens);
         const clickedToken = getTokenAtPosition(clickPosition);
 
         if (clickedToken) {
+            console.log("Token clicked:", clickedToken);
             const playerActor = game.user.character;
             if (!playerActor) {
                 ui.notifications.error("You must have a character assigned to trade.");
@@ -94,6 +99,7 @@ function findNearestMerchant(clickPosition) {
 
 // Function to Initiate Trade
 function initiateTrade(playerActor, merchantActor) {
+    console.log("Initiating trade between", playerActor.name, "and", merchantActor.name);
     const playerGold = playerActor.system.currency.gp || 0;
     const merchantGold = merchantActor.system.currency.gp || 0;
 
