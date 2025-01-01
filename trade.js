@@ -22,13 +22,21 @@ Hooks.on("canvasReady", () => {
             console.log("merchantActor", merchantActor);
 
             if (merchantActor.type === "npc") {
+                const playerId = playerActor.id;
+                let charismaCheck = merchantActor.getFlag("trade-system", `charismaCheck-${playerId}`);
+                if (!charismaCheck) {
+                    charismaCheck = await performCharismaCheck(playerActor);
+                    merchantActor.setFlag("trade-system", `charismaCheck-${playerId}`, charismaCheck);
+                }
+                const priceModifier = calculatePriceModifier(charismaCheck);
+
                 new Dialog({
                     title: "Confirm Trade",
                     content: `<p>Do you want to initiate a trade with ${merchantActor.name}?</p>`,
                     buttons: {
                         yes: {
                             label: "Yes",
-                            callback: () => initiateTrade(playerActor, merchantActor)
+                            callback: () => initiateTrade(playerActor, merchantActor, priceModifier)
                         },
                         no: {
                             label: "No",
@@ -51,37 +59,25 @@ function getTokenAtPosition(position) {
     });
 }
 
-function findNearestMerchant(clickPosition) {
-    const clickX = clickPosition.x;
-    const clickY = clickPosition.y;
-    let nearestMerchant = null;
-    let minDistance = Infinity;
+async function performCharismaCheck(actor) {
+    const roll = await actor.rollSkill("persuasion", { event: null });
+    return roll.total;
+}
 
-    game.scenes.current.tokens.forEach((token) => {
-        const position = {
-            x: token.x + token.width / 2,
-            y: token.y + token.height / 2
-        };
-        const distance = Math.hypot(position.x - clickX, position.y - clickY);
-        if (distance <= 15 && token.actor.data.flags.tags.includes("merchant")) {
-            if (distance < minDistance) {
-                minDistance = distance;
-                nearestMerchant = token.actor;
-            }
-        }
-    });
-
-    return nearestMerchant;
+function calculatePriceModifier(charismaCheck) {
+    const difference = charismaCheck - 10;
+    const modifier = Math.floor(difference / 2) * 0.1;
+    return 1 + modifier;
 }
 
 // Function to Initiate Trade
-function initiateTrade(playerActor, merchantActor) {
+function initiateTrade(playerActor, merchantActor, priceModifier) {
     console.log("Initiating trade between", playerActor?.name, "and", merchantActor.name);
     const playerGold = playerActor?.system.currency.gp || 0;
     const merchantGold = merchantActor.system.currency.gp || 0;
 
-    const playerInventoryHtml = generateInventoryHtml(playerActor, "player");
-    const merchantInventoryHtml = generateInventoryHtml(merchantActor, "merchant");
+    const playerInventoryHtml = generateInventoryHtml(playerActor, "player", priceModifier);
+    const merchantInventoryHtml = generateInventoryHtml(merchantActor, "merchant", priceModifier);
 
     let haggleMultiplier = 1; // Default haggle multiplier
 
@@ -94,10 +90,10 @@ function initiateTrade(playerActor, merchantActor) {
                     <table id="player-inventory" style="width: 100%; border-collapse: collapse;">
                         <thead>
                             <tr>
-                                <th style="padding: 8px;">Select</th>
-                                <th style="padding: 8px;">Item</th>
-                                <th style="padding: 8px;">Amount</th>
-                                <th style="padding: 8px;">Value</th>
+                                <th style="padding: 8px; width: 10%;">Select</th>
+                                <th style="padding: 8px; width: 50%;">Item</th>
+                                <th style="padding: 8px; width: 20%;">Amount</th>
+                                <th style="padding: 8px; width: 20%;">Value</th>
                             </tr>
                         </thead>
                         <tbody>${playerInventoryHtml}</tbody>
@@ -113,10 +109,10 @@ function initiateTrade(playerActor, merchantActor) {
                     <table id="merchant-inventory" style="width: 100%; border-collapse: collapse;">
                         <thead>
                             <tr>
-                                <th style="padding: 8px;">Select</th>
-                                <th style="padding: 8px;">Item</th>
-                                <th style="padding: 8px;">Amount</th>
-                                <th style="padding: 8px;">Value</th>
+                                <th style="padding: 8px; width: 10%;">Select</th>
+                                <th style="padding: 8px; width: 50%;">Item</th>
+                                <th style="padding: 8px; width: 20%;">Amount</th>
+                                <th style="padding: 8px; width: 20%;">Value</th>
                             </tr>
                         </thead>
                         <tbody>${merchantInventoryHtml}</tbody>
@@ -145,13 +141,16 @@ function initiateTrade(playerActor, merchantActor) {
                 const roll = await playerActor.rollSkill("persuasion", { event: null });
                 const rollResult = roll.total;
 
+                let charismaCheck = merchantActor.getFlag("trade-system", `charismaCheck-${playerActor.id}`);
                 if (rollResult > 10) {
-                    const bonus = Math.floor((rollResult - 10) / 2) * 0.1;
-                    haggleMultiplier = 1 + bonus;
+                    charismaCheck += 1;
                 } else {
-                    const penalty = Math.floor((10 - rollResult) / 2) * 0.1;
-                    haggleMultiplier = 1 - penalty;
+                    charismaCheck -= 1;
                 }
+                merchantActor.setFlag("trade-system", `charismaCheck-${playerActor.id}`, charismaCheck);
+
+                const bonus = Math.floor((charismaCheck - 10) / 2) * 0.1;
+                haggleMultiplier = 1 + bonus;
 
                 html.find("#merchant-total").text((parseFloat(html.find("#merchant-total").text()) * haggleMultiplier).toFixed(2));
                 html.find("#player-total").text((parseFloat(html.find("#player-total").text()) / haggleMultiplier).toFixed(2));
@@ -164,16 +163,17 @@ function initiateTrade(playerActor, merchantActor) {
     }).render(true);
 }
 
-function generateInventoryHtml(actor, type) {
+function generateInventoryHtml(actor, type, priceModifier) {
     return actor.items.filter(i => i.type === "equipment" || i.type === "consumable" || i.type === "loot")
         .map(item => {
             const price = item.system.price || 0;
-            const displayPrice = price > 0 ? price : '?';
+            const modifiedPrice = (price * priceModifier).toFixed(2);
+            const displayPrice = price > 0 ? modifiedPrice : '?';
             return `<tr>
-                        <td style="padding: 8px;"><input type="checkbox" data-id="${item.id}" data-price="${price}" class="${type}-item"></td>
-                        <td style="padding: 8px;">${item.name}</td>
-                        <td style="padding: 8px;">${item.system.quantity || 1}</td>
-                        <td style="padding: 8px;">${displayPrice} gp</td>
+                        <td style="padding: 8px; width: 10%;"><input type="checkbox" data-id="${item.id}" data-price="${modifiedPrice}" class="${type}-item"></td>
+                        <td style="padding: 8px; width: 50%;">${item.name}</td>
+                        <td style="padding: 8px; width: 20%;">${item.system.quantity || 1}</td>
+                        <td style="padding: 8px; width: 20%;">${displayPrice} gp</td>
                     </tr>`;
         })
         .join("");
