@@ -42,7 +42,9 @@ Hooks.on("canvasReady", () => {
                     buttons: {
                         yes: {
                             label: "Yes",
-                            callback: () => initiateTrade(playerActor, merchantActor, priceModifier)
+                            callback: async () => {
+                                await initiateTrade(playerActor, merchantActor, priceModifier);
+                            }
                         },
                         no: {
                             label: "No"
@@ -76,7 +78,7 @@ function calculatePriceModifier(charismaCheck) {
 }
 
 // Function to Initiate Trade
-function initiateTrade(playerActor, merchantActor, priceModifier) {
+async function initiateTrade(playerActor, merchantActor, priceModifier) {
     console.log("Initiating trade between", playerActor?.name, "and", merchantActor.name);
     const playerGold = playerActor?.system.currency.gp || 0;
     const merchantGold = merchantActor.system.currency.gp || 0;
