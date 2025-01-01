@@ -235,17 +235,22 @@ async function finalizeTrade(playerActor, merchantActor, haggleMultiplier) {
     }
 
     // Transfer items
-    for (const el of playerSelected) {
+    const playerItemsToCreate = playerSelected.map(el => {
         const item = playerActor.items.get(el.dataset.id);
-        await playerActor.deleteEmbeddedDocuments("Item", [item.id]);
-        await merchantActor.createEmbeddedDocuments("Item", [item.toObject()]);
-    }
+        return item.toObject();
+    });
 
-    for (const el of merchantSelected) {
+    const merchantItemsToCreate = merchantSelected.map(el => {
         const item = merchantActor.items.get(el.dataset.id);
-        await merchantActor.deleteEmbeddedDocuments("Item", [item.id]);
-        await playerActor.createEmbeddedDocuments("Item", [item.toObject()]);
-    }
+        return item.toObject();
+    });
+
+    await playerActor.createEmbeddedDocuments("Item", merchantItemsToCreate);
+    await merchantActor.createEmbeddedDocuments("Item", playerItemsToCreate);
+
+    // Delete original items
+    await playerActor.deleteEmbeddedDocuments("Item", playerSelected.map(el => el.dataset.id));
+    await merchantActor.deleteEmbeddedDocuments("Item", merchantSelected.map(el => el.dataset.id));
 
     // Adjust gold
     await playerActor.update({ "system.currency.gp": playerGold + playerValue - merchantValue });
