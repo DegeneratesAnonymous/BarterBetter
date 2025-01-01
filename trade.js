@@ -2,6 +2,13 @@
 Hooks.once("init", () => {
     console.log("Initializing BarterBetter module...");
     CONFIG.Actor.documentClass.prototype.flags["trade-system"] = {};
+    game.settings.register("barterbetter", "trade-system", {
+        name: "Trade System",
+        scope: "world",
+        config: false,
+        type: Object,
+        default: {}
+    });
 });
 
 // Add event listener for canvas clicks
