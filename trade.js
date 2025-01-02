@@ -237,23 +237,30 @@ async function requestGMApproval(playerActor, merchantActor, haggleMultiplier, m
         return;
     }
 
-    // Request GM approval
-    new Dialog({
-        title: "Approve Trade",
-        content: `<p>Approve trade between ${playerActor.name} and ${merchantActor.name}?</p>`,
-        buttons: {
-            approve: {
-                label: "Approve",
-                callback: async () => {
-                    await finalizeTrade(playerActor, merchantActor, haggleMultiplier, merchantItems, playerSelected, merchantSelected, playerValue, merchantValue);
-                }
-            },
-            reject: {
-                label: "Reject",
-                callback: () => ui.notifications.info("Trade rejected by GM.")
-            }
-        }
-    }).render(true);
+    // Request GM approval via chat message
+    const gm = game.users.find(user => user.isGM && user.active);
+    if (gm) {
+        const content = `
+            <p>Approve trade between ${playerActor.name} and ${merchantActor.name}?</p>
+            <button data-action="approve">Approve</button>
+            <button data-action="reject">Reject</button>
+        `;
+        ChatMessage.create({
+            user: gm.id,
+            speaker: { alias: "Trade System" },
+            content: content,
+            whisper: [gm.id]
+        });
+
+        Hooks.once("renderChatMessage", (message, html) => {
+            html.find("button[data-action='approve']").click(async () => {
+                await finalizeTrade(playerActor, merchantActor, haggleMultiplier, merchantItems, playerSelected, merchantSelected, playerValue, merchantValue);
+            });
+            html.find("button[data-action='reject']").click(() => {
+                ui.notifications.info("Trade rejected by GM.");
+            });
+        });
+    }
 }
 
 async function finalizeTrade(playerActor, merchantActor, haggleMultiplier, merchantItems, playerSelected, merchantSelected, playerValue, merchantValue) {
