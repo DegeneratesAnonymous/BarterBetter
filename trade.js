@@ -8,6 +8,35 @@ Hooks.once("init", () => {
         type: Object,
         default: {}
     });
+
+    game.socket.on("module.barterbetter", async (data) => {
+        if (data.action === "requestGMApproval" && game.user.isGM) {
+            const { playerActorId, merchantActorId, haggleMultiplier, merchantItems, playerSelected, merchantSelected, playerValue, merchantValue } = data;
+            const playerActor = game.actors.get(playerActorId);
+            const merchantActor = game.actors.get(merchantActorId);
+
+            const content = `
+                <p>Approve trade between ${playerActor.name} and ${merchantActor.name}?</p>
+                <button data-action="approve">Approve</button>
+                <button data-action="reject">Reject</button>
+            `;
+            ChatMessage.create({
+                user: game.user.id,
+                speaker: { alias: "Trade System" },
+                content: content,
+                whisper: [game.user.id]
+            });
+
+            Hooks.once("renderChatMessage", (message, html) => {
+                html.find("button[data-action='approve']").click(async () => {
+                    await finalizeTrade(playerActor, merchantActor, haggleMultiplier, merchantItems, playerSelected, merchantSelected, playerValue, merchantValue);
+                });
+                html.find("button[data-action='reject']").click(() => {
+                    ui.notifications.info("Trade rejected by GM.");
+                });
+            });
+        }
+    });
 });
 
 // Add event listener for canvas clicks
@@ -237,41 +266,32 @@ async function requestGMApproval(playerActor, merchantActor, haggleMultiplier, m
         return;
     }
 
-    // Request GM approval via chat message
+    // Request GM approval via socket
     const gm = game.users.find(user => user.isGM && user.active);
     if (gm) {
-        const content = `
-            <p>Approve trade between ${playerActor.name} and ${merchantActor.name}?</p>
-            <button data-action="approve">Approve</button>
-            <button data-action="reject">Reject</button>
-        `;
-        ChatMessage.create({
-            user: gm.id,
-            speaker: { alias: "Trade System" },
-            content: content,
-            whisper: [gm.id]
-        });
-
-        Hooks.once("renderChatMessage", (message, html) => {
-            html.find("button[data-action='approve']").click(async () => {
-                await finalizeTrade(playerActor, merchantActor, haggleMultiplier, merchantItems, playerSelected, merchantSelected, playerValue, merchantValue);
-            });
-            html.find("button[data-action='reject']").click(() => {
-                ui.notifications.info("Trade rejected by GM.");
-            });
+        game.socket.emit("module.barterbetter", {
+            action: "requestGMApproval",
+            playerActorId: playerActor.id,
+            merchantActorId: merchantActor.id,
+            haggleMultiplier,
+            merchantItems,
+            playerSelected: playerSelected.map(el => el.dataset.id),
+            merchantSelected: merchantSelected.map(el => el.dataset.id),
+            playerValue,
+            merchantValue
         });
     }
 }
 
 async function finalizeTrade(playerActor, merchantActor, haggleMultiplier, merchantItems, playerSelected, merchantSelected, playerValue, merchantValue) {
     // Transfer items
-    const playerItemsToCreate = playerSelected.map(el => {
-        const item = playerActor.items.get(el.dataset.id);
+    const playerItemsToCreate = playerSelected.map(id => {
+        const item = playerActor.items.get(id);
         return item.toObject();
     });
 
-    const merchantItemsToCreate = merchantSelected.map(el => {
-        const item = merchantItems.find(i => i._id === el.dataset.id);
+    const merchantItemsToCreate = merchantSelected.map(id => {
+        const item = merchantItems.find(i => i._id === id);
         return item;
     });
 
@@ -279,8 +299,8 @@ async function finalizeTrade(playerActor, merchantActor, haggleMultiplier, merch
     await playerActor.createEmbeddedDocuments("Item", playerItemsToCreate);
 
     // Delete original items
-    await playerActor.deleteEmbeddedDocuments("Item", playerSelected.map(el => el.dataset.id));
-    await merchantActor.deleteEmbeddedDocuments("Item", merchantSelected.map(el => el.dataset.id));
+    await playerActor.deleteEmbeddedDocuments("Item", playerSelected);
+    await merchantActor.deleteEmbeddedDocuments("Item", merchantSelected);
 
     // Adjust gold
     await playerActor.update({ "system.currency.gp": playerGold + playerValue - merchantValue });
