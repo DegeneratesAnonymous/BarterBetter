@@ -15,6 +15,8 @@ Hooks.once("init", () => {
             const playerActor = game.actors.get(playerActorId);
             const merchantActor = game.actors.get(merchantActorId);
 
+            console.log("Received trade approval request from player.");
+
             const content = `
                 <p>Approve trade between ${playerActor.name} and ${merchantActor.name}?</p>
                 <button data-action="approve">Approve</button>
@@ -29,9 +31,11 @@ Hooks.once("init", () => {
 
             Hooks.once("renderChatMessage", (message, html) => {
                 html.find("button[data-action='approve']").click(async () => {
+                    console.log("GM approved the trade.");
                     await finalizeTrade(playerActor, merchantActor, haggleMultiplier, merchantItems, playerSelected, merchantSelected, playerValue, merchantValue);
                 });
                 html.find("button[data-action='reject']").click(() => {
+                    console.log("GM rejected the trade.");
                     ui.notifications.info("Trade rejected by GM.");
                 });
             });
@@ -170,7 +174,10 @@ async function initiateTrade(playerActor, merchantActor, priceModifier) {
         buttons: {
             finalize: {
                 label: "Finalize Trade",
-                callback: () => requestGMApproval(playerActor, merchantActor, haggleMultiplier, merchantItems)
+                callback: () => {
+                    console.log("Player sent trade request for approval.");
+                    requestGMApproval(playerActor, merchantActor, haggleMultiplier, merchantItems);
+                }
             },
             cancel: {
                 label: "Cancel",
@@ -269,6 +276,7 @@ async function requestGMApproval(playerActor, merchantActor, haggleMultiplier, m
     // Request GM approval via socket
     const gm = game.users.find(user => user.isGM && user.active);
     if (gm) {
+        console.log("Sending trade approval request to GM.");
         game.socket.emit("module.barterbetter", {
             action: "requestGMApproval",
             playerActorId: playerActor.id,
