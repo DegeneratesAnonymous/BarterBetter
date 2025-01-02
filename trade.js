@@ -88,6 +88,9 @@ async function initiateTrade(playerActor, merchantActor, priceModifier) {
     const playerInventoryHtml = generateInventoryHtml(playerActor, "player", priceModifier);
     const merchantInventoryHtml = generateInventoryHtml(merchantActor, "merchant", priceModifier);
 
+    // Remember the merchant's inventory items
+    const merchantItems = merchantActor.items.map(item => item.toObject());
+
     let haggleMultiplier = 1; // Default haggle multiplier
 
     const dialogContent = `
@@ -138,7 +141,7 @@ async function initiateTrade(playerActor, merchantActor, priceModifier) {
         buttons: {
             finalize: {
                 label: "Finalize Trade",
-                callback: () => finalizeTrade(playerActor, merchantActor, haggleMultiplier)
+                callback: () => requestGMApproval(playerActor, merchantActor, haggleMultiplier, merchantItems)
             },
             cancel: {
                 label: "Cancel",
@@ -208,7 +211,7 @@ function updateTotalValues(html) {
     html.find("#merchant-total").text(merchantTotal.toFixed(2));
 }
 
-async function finalizeTrade(playerActor, merchantActor, haggleMultiplier) {
+async function requestGMApproval(playerActor, merchantActor, haggleMultiplier, merchantItems) {
     const playerSelected = Array.from(document.querySelectorAll(".player-item:checked"));
     const merchantSelected = Array.from(document.querySelectorAll(".merchant-item:checked"));
 
@@ -234,6 +237,26 @@ async function finalizeTrade(playerActor, merchantActor, haggleMultiplier) {
         return;
     }
 
+    // Request GM approval
+    new Dialog({
+        title: "Approve Trade",
+        content: `<p>Approve trade between ${playerActor.name} and ${merchantActor.name}?</p>`,
+        buttons: {
+            approve: {
+                label: "Approve",
+                callback: async () => {
+                    await finalizeTrade(playerActor, merchantActor, haggleMultiplier, merchantItems, playerSelected, merchantSelected, playerValue, merchantValue);
+                }
+            },
+            reject: {
+                label: "Reject",
+                callback: () => ui.notifications.info("Trade rejected by GM.")
+            }
+        }
+    }).render(true);
+}
+
+async function finalizeTrade(playerActor, merchantActor, haggleMultiplier, merchantItems, playerSelected, merchantSelected, playerValue, merchantValue) {
     // Transfer items
     const playerItemsToCreate = playerSelected.map(el => {
         const item = playerActor.items.get(el.dataset.id);
@@ -241,12 +264,12 @@ async function finalizeTrade(playerActor, merchantActor, haggleMultiplier) {
     });
 
     const merchantItemsToCreate = merchantSelected.map(el => {
-        const item = merchantActor.items.get(el.dataset.id);
-        return item.toObject();
+        const item = merchantItems.find(i => i._id === el.dataset.id);
+        return item;
     });
 
     await playerActor.createEmbeddedDocuments("Item", merchantItemsToCreate);
-    await merchantActor.createEmbeddedDocuments("Item", playerItemsToCreate);
+    await playerActor.createEmbeddedDocuments("Item", playerItemsToCreate);
 
     // Delete original items
     await playerActor.deleteEmbeddedDocuments("Item", playerSelected.map(el => el.dataset.id));
